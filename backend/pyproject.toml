@@ -1,0 +1,8 @@
+[tool.pytest.ini_options]
+pythonpath = [
+  "." # Add current directory (backend/) to PYTHONPATH for pytest
+]
+# You can also add testpaths here if needed, e.g.
+# testpaths = [
+#     "app/tests",
+# ]

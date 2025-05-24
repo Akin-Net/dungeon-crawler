@@ -1,0 +1,22 @@
+# General
+node_modules/
+dist/
+.DS_Store
+*.pyc
+__pycache__/
+.env
+
+# Python
+backend/venv/
+backend/.mypy_cache/
+backend/.pytest_cache/
+backend/.ruff_cache/
+
+# Frontend (Vite/React)
+frontend/node_modules/
+frontend/dist/
+frontend/.eslintcache
+
+# VSCode
+.vscode/
+!.vscode/launch.json # Keep launch.json if you want to commit it
