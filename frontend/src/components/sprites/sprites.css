@@ -1,0 +1,524 @@
+
+/* --- Player Sprite Container --- */
+.sprite-player {
+  background-color: transparent; /* Player's main div is transparent */
+  z-index: 10;
+  position: relative; /* CRITICAL: This makes .sprite-player the context for .knight-component */
+  /* Remove width/height here if already set by .game-sprite, or ensure consistency */
+}
+
+/* Base for all knight components (helmet, torso, shield, sword) */
+.knight-component {
+  position: absolute; /* Positioned relative to .sprite-player */
+  box-sizing: border-box;
+}
+
+/* Knight Helmet */
+.knight-helmet {
+  width: calc(var(--tile-size) * 0.5); 
+  height: calc(var(--tile-size) * 0.45);
+  left: 50%;
+  top: calc(var(--tile-size) * 0.08); 
+  transform: translateX(-50%);
+  background-color: #9eadb6; 
+  border: calc(var(--tile-size) * 0.05) solid #546e7a;
+  border-bottom: none; 
+  border-top-left-radius: calc(var(--tile-size) * 0.25); 
+  border-top-right-radius: calc(var(--tile-size) * 0.25);
+  border-bottom-left-radius: calc(var(--tile-size) * 0.03);
+  border-bottom-right-radius: calc(var(--tile-size) * 0.03);
+  z-index: 3; /* Higher than torso if they overlap slightly */
+}
+.knight-helmet::before { /* Visor Slit */
+  content: '';
+  position: absolute;
+  bottom: calc(var(--tile-size) * 0.08); 
+  left: 50%;
+  transform: translateX(-50%);
+  width: 70%; 
+  height: calc(var(--tile-size) * 0.1); 
+  background-color: #263238; 
+  border-radius: calc(var(--tile-size) * 0.01); 
+}
+.knight-helmet::after { /* Plume */
+  content: '';
+  position: absolute;
+  top: calc(var(--tile-size) * -0.1); 
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(var(--tile-size) * 0.15); 
+  height: calc(var(--tile-size) * 0.18);
+  background-color: #d32f2f; 
+  border-radius: calc(var(--tile-size) * 0.07) calc(var(--tile-size) * 0.07) 0 0;
+  border-left: 1px solid #b71c1c; 
+  border-right: 1px solid #b71c1c;
+  border-top: 1px solid #b71c1c;
+}
+
+/* Knight Torso */
+.knight-torso {
+  width: calc(var(--tile-size) * 0.6); 
+  height: calc(var(--tile-size) * 0.5);
+  left: 50%;
+  top: calc(var(--tile-size) * 0.42); /* Should be >= helmet height + helmet top, approx */
+  transform: translateX(-50%);
+  background-color: #607d8b; 
+  border-left: calc(var(--tile-size) * 0.05) solid #455a64;
+  border-right: calc(var(--tile-size) * 0.05) solid #455a64;
+  border-bottom: calc(var(--tile-size) * 0.05) solid #455a64;
+  border-radius: 0 0 calc(var(--tile-size) * 0.2) calc(var(--tile-size) * 0.2); 
+  z-index: 2; 
+}
+.knight-torso::before { /* Torso Detail */
+  content: '';
+  position: absolute;
+  top: 15%; 
+  left: 50%;
+  transform: translateX(-50%);
+  width: 40%;
+  height: 60%;
+  background-color: #78909c; 
+  border-radius: calc(var(--tile-size) * 0.05);
+  opacity: 0.6; 
+}
+.knight-torso::after { /* Gorget */
+    content: '';
+    position: absolute;
+    top: calc(var(--tile-size) * -0.08); 
+    left: 50%;
+    transform: translateX(-50%);
+    width: calc(var(--tile-size) * 0.5); 
+    height: calc(var(--tile-size) * 0.1); 
+    background-color: #546e7a; 
+    border-radius: calc(var(--tile-size) * 0.03) calc(var(--tile-size) * 0.03) 0 0;
+    z-index: 2; /* Same as torso, or slightly higher if it should overlap helmet border */
+}
+
+/* Knight Shield */
+.knight-shield {
+  width: calc(var(--tile-size) * 0.4); 
+  height: calc(var(--tile-size) * 0.55);
+  /* Position relative to the main .sprite-player div's center */
+  right: calc(var(--tile-size) * 0.6); /* Knight's left */
+  top: calc(var(--tile-size) * 0.38); 
+  background-color: #795548; 
+  border: calc(var(--tile-size) * 0.05) solid #4e342e; 
+  border-radius: calc(var(--tile-size) * 0.05) calc(var(--tile-size) * 0.05) 
+                 calc(var(--tile-size) * 0.2) calc(var(--tile-size) * 0.2); 
+  /* transform: rotate(-15deg) ;  */
+  z-index: 3; /* Lower than torso, potentially */
+}
+.knight-shield::before { /* Shield Boss */
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: calc(var(--tile-size) * 0.15); 
+  height: calc(var(--tile-size) * 0.15);
+  background-color: #babdbe; 
+  border: 1px solid #757575;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: inset 0 0 calc(var(--tile-size) * 0.03) rgba(0,0,0,0.3); 
+}
+.knight-shield::after { 
+  content: none;
+}
+
+/* Knight Sword */
+.knight-sword {
+  /* Dimensions */
+  width: calc(var(--tile-size) * 0.25); 
+  height: calc(var(--tile-size) * 0.9); 
+
+  /* Positioning - Keep as per your last good adjustment, or tweak as needed */
+  top: calc(var(--tile-size) * 0.01);  
+  left: calc(var(--tile-size) * 0.65); 
+  
+  /* Visuals */
+  background: linear-gradient(to bottom, #f0f0f0, #c8c8c8, #b8b8b8); 
+  border: 1px solid #4a4a4a; 
+
+  /* Blade Shape */
+  clip-path: polygon(
+    50% 0%,      
+    100% 85%,    
+    50% 100%,    
+    0% 85%       
+  );
+  
+  /* Orientation and Depth */
+  transform: rotate(30deg); 
+  transform-origin: calc(var(--tile-size) * 0.125) calc(var(--tile-size) * 0.6); 
+  z-index: 4; 
+  box-shadow: calc(var(--tile-size) * 0.03) calc(var(--tile-size) * 0.03) calc(var(--tile-size) * 0.05) rgba(0,0,0,0.2);
+}
+
+/* Sword Hilt - no changes from previous version */
+.knight-sword::before {
+  content: '';
+  position: absolute;
+  bottom: 0%; 
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(var(--tile-size) * 0.3); 
+  height: calc(var(--tile-size) * 0.15); 
+  background-color: #5d4037; 
+  border: 1px solid #3e2723;
+  border-radius: calc(var(--tile-size) * 0.03);
+  z-index: 5; 
+}
+
+/* Pommel - no changes from previous version */
+.knight-sword::after {
+    content: '';
+    position: absolute;
+    bottom: calc(var(--tile-size) * -0.06); 
+    left: 50%;
+    transform: translateX(-50%);
+    width: calc(var(--tile-size) * 0.12); 
+    height: calc(var(--tile-size) * 0.12);
+    background-color: #424242; 
+    border-radius: 50%;
+    border: 1px solid #212121;
+    z-index: 6; 
+}
+
+/* --- Goblin Sprite Parts --- */
+.goblin-component {
+  position: absolute;
+  box-sizing: border-box;
+  display: block; 
+}
+
+/* Goblin Head */
+.goblin-head {
+  width: calc(var(--tile-size) * 0.6);  
+  height: calc(var(--tile-size) * 0.52); 
+  left: 50%;
+  top: calc(var(--tile-size) * 0.22); 
+  transform: translateX(-50%);
+  background-color: #4CAF50; 
+  border: 1px solid #388E3C; 
+  border-radius: 50% 50% 45% 45%; 
+  z-index: 2; 
+  position: relative; 
+}
+
+/* Goblin Left Eye (Span) */
+.goblin-eye.left-eye {
+  position: absolute;
+  width: calc(var(--tile-size) * 0.12);
+  height: calc(var(--tile-size) * 0.12);
+  background-color: #212121; /* Dark eye color */
+  /* border: 1px solid #000; */ /* Optional: even darker border for eye */
+  border-radius: 50%;
+  top: calc(var(--tile-size) * 0.1); 
+  left: calc(var(--tile-size) * 0.12); /* Adjusted for new head size/shape */
+  z-index: 3; /* Eyes on top of head bg, and nose if overlapping */
+}
+
+/* Goblin Right Eye (Span) */
+.goblin-eye.right-eye {
+  position: absolute;
+  width: calc(var(--tile-size) * 0.12);
+  height: calc(var(--tile-size) * 0.12);
+  background-color: #212121; /* Dark eye color */
+  /* border: 1px solid #000; */
+  border-radius: 50%;
+  top: calc(var(--tile-size) * 0.1); 
+  right: calc(var(--tile-size) * 0.12); /* Adjusted */
+  z-index: 3; 
+}
+
+/* Goblin Nose (Using ::before of .goblin-head) */
+.goblin-head::before {
+  content: '';
+  position: absolute;
+  width: calc(var(--tile-size) * 0.18); 
+  height: calc(var(--tile-size) * 0.25); 
+  top: calc(var(--tile-size) * 0.22); /* Position below eyes */
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #388E3C; 
+  clip-path: polygon(50% 100%, 0 0, 100% 0); 
+  z-index: 1; /* Nose can be under eyes slightly if they are prominent */
+}
+
+/* Goblin Mouth (REMOVED) */
+/* .goblin-head::after { ... } */
+
+
+/* Goblin Ears */
+.goblin-ear { 
+  width: calc(var(--tile-size) * 0.25);  
+  height: calc(var(--tile-size) * 0.45); 
+  background-color: #66BB6A; 
+  border: 1px solid #43A047;
+  clip-path: polygon(50% 0%, 100% 100%, 0% 100%); 
+  z-index: 1; /* Ears behind head */
+}
+
+.goblin-ear.left {
+  top: calc(var(--tile-size) * 0.05); 
+  left: calc(var(--tile-size) * 0.08);  
+  transform: rotate(-40deg); 
+}
+
+.goblin-ear.right {
+  top: calc(var(--tile-size) * 0.05);
+  right: calc(var(--tile-size) * 0.08); 
+  transform: rotate(40deg); 
+}
+
+
+/* Goblin Body */
+.goblin-body {
+  width: calc(var(--tile-size) * 0.55); 
+  height: calc(var(--tile-size) * 0.4); 
+  left: 50%;
+  top: calc(var(--tile-size) * 0.22 + var(--tile-size) * 0.52 - var(--tile-size) * 0.1); 
+  transform: translateX(-50%);
+  background-color: #795548; 
+  border: 1px solid #5d4037;
+  border-radius: 10% 10% 30% 30%; 
+  z-index: 0; 
+}
+
+/* --- Orc Sprite Parts --- */
+.orc-component {
+  position: absolute;
+  box-sizing: border-box;
+  display: block; 
+}
+
+/* Orc Head - Main shape, slightly more top-rounded */
+.orc-head {
+  width: calc(var(--tile-size) * 0.7); 
+  height: calc(var(--tile-size) * 0.55); /* Slightly shorter to accommodate jaw */
+  left: 50%;
+  top: calc(var(--tile-size) * 0.1); 
+  transform: translateX(-50%);
+  background-color: #556B2F; /* Dark Olive Green or #6D4C41 Brownish */
+  border: 1px solid #364519; /* Darker outline for green */
+  /* More rounded top, flatter bottom for jaw connection */
+  border-radius: calc(var(--tile-size) * 0.25) calc(var(--tile-size) * 0.25) 
+                 calc(var(--tile-size) * 0.05) calc(var(--tile-size) * 0.05);
+  z-index: 2; 
+  position: relative; 
+}
+
+/* Orc Eyes - Spans inside .orc-head */
+.orc-eye {
+  width: calc(var(--tile-size) * 0.13); 
+  height: calc(var(--tile-size) * 0.13);
+  background-color: #D32F2F; /* Red eyes */
+  border: 1px solid #7F0000; 
+  border-radius: 50%;
+  top: calc(var(--tile-size) * 0.12); 
+  z-index: 1; /* On top of head background */
+}
+.orc-eye.orc-left-eye {
+  left: calc(var(--tile-size) * 0.15); 
+}
+.orc-eye.orc-right-eye {
+  right: calc(var(--tile-size) * 0.15); 
+}
+
+/* Orc Mouth Line (using ::after of .orc-head) */
+.orc-head::after {
+  content: '';
+  position: absolute;
+  width: calc(var(--tile-size) * 0.45); /* Wider mouth line */
+  height: calc(var(--tile-size) * 0.04); /* Thinner line */
+  /* Position below snout, this is the line from which tusks will appear to emerge */
+  top: calc(var(--tile-size) * 0.2 + var(--tile-size) * 0.15 + var(--tile-size) * 0.01); 
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #2E3817; /* Very dark green/black for mouth line */
+  z-index: 1;
+}
+
+/* Orc Tusks - Pointing Upwards and Diagonally from mouth/jaw area */
+.orc-tusk {
+  width: calc(var(--tile-size) * 0.23); /* Slightly wider tusk base */
+  height: calc(var(--tile-size) * 0.3); /* Tusk length */
+  background-color: #E0E0E0; 
+  border: 1px solid #2E3817; /* Brownish/greyish tint to border */
+  z-index: 3; /* Tusks in front of head details */
+  /* Pointy tusk shape, base at bottom, tip at top for upward pointing */
+  clip-path: polygon(50% 0%, 60% 100%, 20% 100%); 
+  transform-origin: bottom center; /* Rotate around the base of the tusk */
+}
+
+.orc-tusk.orc-left-tusk {
+  /* Position base of tusk to appear from left side of mouth/jaw */
+  /* head.top + mouth_line.top_relative_to_head + mouth_line_height - tusk_height + offset */
+  top: calc(var(--tile-size) * 0.1 + var(--tile-size) * 0.44 + var(--tile-size) * 0.04 - var(--tile-size) * 0.35 + var(--tile-size) * 0.02);
+  left: calc(var(--tile-size) * 0.2);  /* Adjust to emerge from jawline more to the side */
+  transform: rotate(-20deg); /* Angle upwards and outwards */
+}
+
+.orc-tusk.orc-right-tusk {
+  top: calc(var(--tile-size) * 0.1 + var(--tile-size) * 0.44 + var(--tile-size) * 0.04 - var(--tile-size) * 0.35 + var(--tile-size) * 0.02);
+  right: calc(var(--tile-size) * 0.2); /* Adjust to emerge from jawline more to the side */
+  transform: rotate(20deg); /* Angle upwards and outwards */
+}
+
+/* Orc Body - Stocky */
+.orc-body {
+  width: calc(var(--tile-size) * 0.8);  /* Wider than head */
+  height: calc(var(--tile-size) * 0.4); /* Can be shorter if mainly showing shoulders */
+  left: 50%;
+  /* Position below the head, allowing for jaw/tusks */
+  top: calc(var(--tile-size) * 0.1 + var(--tile-size) * 0.55 - var(--tile-size) * 0.05); /* head.top + head.height - small_overlap */
+  transform: translateX(-50%);
+  background-color: #8D6E63; /* Brown or dark grey for leather/armor */
+  border: 1px solid #5D4037;
+  border-radius: calc(var(--tile-size) * 0.05); /* Slightly rounded, blocky */
+  z-index: 0; /* Body behind all head elements */
+}
+
+
+/* --- Skeleton Sprite Parts --- */
+.skeleton-component {
+  position: absolute;
+  box-sizing: border-box;
+  display: block; 
+}
+
+/* Skeleton Skull - Using clip-path for jaw definition */
+.skeleton-skull {
+  width: calc(var(--tile-size) * 0.55); 
+  height: calc(var(--tile-size) * 0.6);  /* Height for skull shape */
+  left: 50%;
+  top: calc(var(--tile-size) * 0.1); 
+  transform: translateX(-50%);
+  background-color: #ECEFF1; 
+  /* border: 1px solid #B0BEC5;  Remove border if clip-path handles edges well */
+  /* Using clip-path for a more defined skull shape with a jaw */
+  clip-path: polygon(
+    0% 20%, 20% 0%, 80% 0%, 100% 20%, /* Top cranium curve points */
+    100% 70%, /* Side of face before jaw */
+    65% 100%, /* Bottom-right of jaw */
+    35% 100%, /* Bottom-left of jaw */
+    0% 70%    /* Side of face before jaw */
+  );
+  z-index: 2; 
+  position: relative; 
+}
+
+/* Eye Sockets (Pseudo-elements of .skeleton-skull) */
+.skeleton-skull::before { /* Left eye socket */
+  content: '';
+  position: absolute;
+  width: calc(var(--tile-size) * 0.16); 
+  height: calc(var(--tile-size) * 0.18); 
+  background-color: #1a2327; 
+  border-radius: 50%; /* Simpler round sockets for now */
+  top: calc(var(--tile-size) * 0.15); /* Adjust Y based on new skull shape */
+  left: calc(var(--tile-size) * 0.1);
+  z-index: 1;
+}
+.skeleton-skull::after { /* Right eye socket */
+  content: '';
+  position: absolute;
+  width: calc(var(--tile-size) * 0.16); 
+  height: calc(var(--tile-size) * 0.18); 
+  background-color: #1a2327; 
+  border-radius: 50%;
+  top: calc(var(--tile-size) * 0.15); 
+  right: calc(var(--tile-size) * 0.1);
+  z-index: 1;
+}
+
+/* Teeth Container - Position within the clipped jaw area */
+.skeleton-teeth-container {
+  display: flex; 
+  position: absolute;
+  width: calc(var(--tile-size) * 0.25); /* Narrower to fit jaw */
+  height: calc(var(--tile-size) * 0.06); 
+  bottom: calc(var(--tile-size) * 0.01); /* Very bottom of the skull */
+  left: 50%;
+  transform: translateX(-50%);
+  justify-content: space-between; 
+  align-items: center; 
+  z-index: 3; 
+  /* No border-top needed if teeth create the mouth line */
+}
+.skeleton-tooth {
+    display: block; 
+    width: calc(var(--tile-size) * 0.03); 
+    height: 100%; 
+    background-color: #CFD8DC; 
+}
+
+    
+/* Skeleton Torso - Position below the new skull */
+.skeleton-torso {
+  width: calc(var(--tile-size) * 0.3);  
+  height: calc(var(--tile-size) * 0.35); 
+  left: 50%;
+  /* skull.top (0.1) + skull.height (0.6) - overlap (0.03) = 0.67 */
+  top: calc(var(--tile-size) * (0.1 + 0.6 - 0.03) ); 
+  transform: translateX(-50%);
+  z-index: 0; 
+  position: relative; 
+  background-color: transparent; 
+  box-shadow: 0 calc(var(--tile-size) * 0.12) 0 0 #B0BEC5; 
+}
+.skeleton-torso::before, .skeleton-torso::after { /* Ribs */
+  display: block; content: ''; position: absolute; width: 100%; 
+  height: calc(var(--tile-size) * 0.05); background-color: #B0BEC5; 
+  border-radius: calc(var(--tile-size) * 0.025); left: 0;
+}
+.skeleton-torso::before {top: calc(var(--tile-size) * 0.02); }
+.skeleton-torso::after { top: calc(var(--tile-size) * 0.22); }
+
+
+/* Skeleton Bow - More bow-like shape */
+.skeleton-bow {
+  width: calc(var(--tile-size) * 0.1);  /* Thickness of the bow limbs */
+  height: calc(var(--tile-size) * 0.8); /* Overall length of the bow */
+  left: calc(var(--tile-size) * 0.05); 
+  top: calc(var(--tile-size) * 0.12); 
+  /* background-color: #6D4C41; */ /* We'll use pseudo-elements for the limbs */
+  transform: rotate(-20deg); 
+  transform-origin: center center; 
+  z-index: 1; 
+  position: relative; /* For ::before and ::after (limbs) */
+  /* outline: 1px dashed orange; */ /* For debugging bow container */
+}
+
+/* Bow Limbs (Upper and Lower) */
+.skeleton-bow::before, .skeleton-bow::after {
+  content: '';
+  position: absolute;
+  width: 100%; /* Same thickness as parent */
+  height: 48%; /* Each limb is almost half the total bow height */
+  background-color: #8D6E63; /* Wooden color */
+  border: 1px solid #5D4037;
+  left: 0;
+}
+.skeleton-bow::before { /* Upper limb */
+  top: 0;
+  border-radius: calc(var(--tile-size) * 0.1) calc(var(--tile-size) * 0.1) 0 0; /* Rounded top */
+  /* Slight curve using border-radius on one side if desired, or keep straight */
+}
+.skeleton-bow::after { /* Lower limb */
+  bottom: 0;
+  border-radius: 0 0 calc(var(--tile-size) * 0.1) calc(var(--tile-size) * 0.1); /* Rounded bottom */
+}
+
+/* Bow String (New span inside .skeleton-bow) - More control */
+.bow-string {
+    position: absolute;
+    width: calc(var(--tile-size) * 0.02); /* Very thin */
+    height: calc(100% - var(--tile-size) * 0.08); /* String doesn't go to very tips of bow */
+    top: calc(var(--tile-size) * 0.04); /* Start slightly in from bow tips */
+    left: 50%;
+    transform: translateX(-50%); /* Center it */
+    background-color: #CFD8DC;
+    border-radius: 1px;
+    z-index: 1; /* On top of bow limbs if perfectly centered */
+}

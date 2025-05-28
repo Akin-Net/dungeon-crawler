@@ -144,7 +144,7 @@ class MapManager:
                     tile_at_current = current_map[current_y][current_x]
                     if tile_at_current == TILE_WALL or tile_at_current == TILE_DOOR_CLOSED:
                         return False
-                else: return False
+                else: return False # Out of bounds
             if current_x == x1 and current_y == y1: break
             e2 = 2 * err
             if e2 > -dy: err -= dy; current_x += sx
@@ -153,26 +153,58 @@ class MapManager:
 
     def find_path_bfs(self, start_pos: Dict[str,int], end_pos: Dict[str,int], entity_type: str, entity_manager: 'EntityManager', player_pos: Optional[Dict[str, int]]) -> Optional[List[Dict[str,int]]]:
         if not self.actual_dungeon_map : return None
+
+        # If start and end are the same, path is just the start/end point
+        if start_pos["x"] == end_pos["x"] and start_pos["y"] == end_pos["y"]:
+            return [start_pos]
+
+        # Check if the starting position itself is walkable for the entity.
+        # If not, no path can begin from there unless it's also the end_pos (handled above).
+        if not self.is_walkable_for_entity(start_pos["x"], start_pos["y"], entity_type, entity_manager, player_pos):
+            # Allow player to pathfind "from" a closed door tile they are on to open it (target is door)
+            # but general pathfinding *from* an unwalkable tile should fail.
+            # However, for monsters, if they somehow start on an unwalkable tile, they shouldn't be able to path.
+            if entity_type != "player" or self.actual_dungeon_map[start_pos["y"]][start_pos["x"]] != TILE_DOOR_CLOSED:
+                 return None
+
+
         queue: deque[List[Dict[str,int]]] = deque([[start_pos]])
         visited: Set[Tuple[int,int]] = { (start_pos["x"], start_pos["y"]) }
+        
         map_h = len(self.actual_dungeon_map); map_w = len(self.actual_dungeon_map[0])
+
         while queue:
             path = queue.popleft()
             current_node = path[-1]
-            if current_node["x"] == end_pos["x"] and current_node["y"] == end_pos["y"]: return path
-            for dx, dy in [(0,1), (0,-1), (1,0), (-1,0)]:
+
+            # Check if current_node is the end_pos (already done before loop for start_pos == end_pos)
+            # This check is for subsequent nodes in the path.
+            if current_node["x"] == end_pos["x"] and current_node["y"] == end_pos["y"]:
+                return path
+            
+            for dx, dy in [(0,1), (0,-1), (1,0), (-1,0)]: # Orthogonal neighbors
                 next_x, next_y = current_node["x"] + dx, current_node["y"] + dy
+
                 if (next_x, next_y) not in visited:
                     is_target_node = (next_x == end_pos["x"] and next_y == end_pos["y"])
                     can_path_through = False
-                    if is_target_node and entity_type == "monster" and \
-                       player_pos and next_x == player_pos["x"] and next_y == player_pos["y"]:
-                        can_path_through = True
+
+                    if is_target_node:
+                        # If the destination is the player's current tile and entity is a monster, it's a valid target.
+                        if entity_type == "monster" and player_pos and next_x == player_pos["x"] and next_y == player_pos["y"]:
+                            can_path_through = True
+                        # If it's the target node, use is_walkable_for_entity to see if the entity can *end* on this tile.
+                        # This handles cases like player moving to a door or item.
+                        elif self.is_walkable_for_entity(next_x, next_y, entity_type, entity_manager, player_pos):
+                             can_path_through = True
+                    # For non-target nodes in the path
                     elif self.is_walkable_for_entity(next_x, next_y, entity_type, entity_manager, player_pos):
                         can_path_through = True
+                    
                     if can_path_through:
                         visited.add((next_x, next_y))
-                        new_path = list(path); new_path.append({"x": next_x, "y": next_y})
+                        new_path = list(path)
+                        new_path.append({"x": next_x, "y": next_y})
                         queue.append(new_path)
         return None
 
@@ -182,10 +214,10 @@ class MapManager:
         if not (0 <= y < map_h and 0 <= x < map_w): return False
         tile = self.actual_dungeon_map[y][x]
         if tile == TILE_WALL: return False
-        if tile == TILE_DOOR_CLOSED: return for_entity_type == "player"
+        if tile == TILE_DOOR_CLOSED: return for_entity_type == "player" # Only player can "pass" closed doors to open
         return tile in [
             TILE_FLOOR, TILE_DOOR_OPEN, TILE_ITEM_POTION, TILE_STAIRS_DOWN, TILE_ITEM_SCROLL_TELEPORT,
-            TILE_EMPTY
+            TILE_EMPTY # Assuming EMPTY might be a revealed but not yet defined space, potentially walkable
         ]
 
     def is_walkable_for_entity(self, x: int, y: int, entity_type: str, entity_manager: 'EntityManager', player_pos: Optional[Dict[str, int]]) -> bool:
@@ -194,34 +226,53 @@ class MapManager:
         if not (0 <= y < map_h and 0 <= x < map_w): return False
         
         # Check underlying tile passability first
+        # For player pathfinding, if target is a closed door, is_tile_passable returns true, 
+        # but actual movement logic in GameState handles opening it. For pathfinding, treat it as walkable endpoint.
+        tile = self.actual_dungeon_map[y][x]
         if not self.is_tile_passable(x, y, entity_type):
-            # Allow player to "walk into" a closed door to open it
-            if entity_type == "player" and self.actual_dungeon_map[y][x] == TILE_DOOR_CLOSED:
-                 return True
-            return False
+            # Allow player to "pathfind to" a closed door (to open it). GameState handles the "open" action.
+            if entity_type == "player" and tile == TILE_DOOR_CLOSED:
+                 pass # Allow pathfinding to end on a closed door for player
+            else:
+                return False
 
         # Check for blocking entities
-        if player_pos and player_pos["x"] == x and player_pos["y"] == y and entity_type != "player_teleport":
-            return False # Cannot walk to own current location (unless teleporting)
-
-        if entity_manager.get_monster_at(x,y): # Check for any monster
+        # An entity cannot walk onto its own current location during path exploration (unless teleporting)
+        # Note: player_pos is the player's *current* position. If entity_type is "player", this prevents pathing to current spot.
+        if entity_type != "player_teleport":
+            if entity_type == "player" and player_pos and player_pos["x"] == x and player_pos["y"] == y:
+                 return False 
+            # For monsters, player_pos is the *target's* (player's) position.
+            # A monster *can* pathfind to the player's tile.
+            # If we are checking a monster's ability to walk to (x,y) and (x,y) is the player's pos:
+            # This is fine, the monster wants to reach the player.
+            # Entity manager check below handles if another monster is at (x,y)
+            
+        # Is there another monster at (x,y)?
+        other_monster_at_xy = entity_manager.get_monster_at(x,y)
+        if other_monster_at_xy:
             if entity_type == "monster": # Monsters cannot walk into other monsters
                 return False
-            if entity_type == "player": # Player cannot walk onto a monster for pathfinding
-                return False
-            # player_teleport specific check is below for this case
+            # Player cannot normally walk onto a monster for pathfinding (bump attack is separate)
+            # unless it's the target of the path for an attack next move (handled by game_state logic)
+            if entity_type == "player": 
+                return False 
+            # player_teleport already handled by specific check below.
         
-        tile = self.actual_dungeon_map[y][x]
-        if entity_type == "player_teleport": # Teleport target validation
-            return tile in [TILE_FLOOR, TILE_DOOR_OPEN] and not entity_manager.get_monster_at(x,y)
+        # Specific check for player_teleport: must be floor/open door AND no monster
+        if entity_type == "player_teleport": 
+            return tile in [TILE_FLOOR, TILE_DOOR_OPEN] and not other_monster_at_xy
 
         # General walkability based on tile type for the entity, assuming no other entity blocks
         if entity_type == "monster":
+            # Monsters can walk on floor and open doors.
+            # They can also pathfind *to* the player's tile (which is likely TILE_FLOOR).
             return tile in [TILE_FLOOR, TILE_DOOR_OPEN]
         
         elif entity_type == "player":
             # Player can walk on floor, open doors, items, stairs.
-            # Monster check already done above for player pathfinding.
+            # Player can pathfind *to* a closed door to open it.
+            # Monster check already done above.
             return tile in [
                 TILE_FLOOR, TILE_DOOR_OPEN, TILE_ITEM_POTION, TILE_ITEM_SCROLL_TELEPORT,
                 TILE_STAIRS_DOWN, TILE_DOOR_CLOSED 

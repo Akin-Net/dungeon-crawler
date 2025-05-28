@@ -42,22 +42,46 @@ param (
         "frontend/src/App.jsx",
         "frontend/src/DungeonCanvas.jsx",
         "frontend/src/main.jsx",
-        # Test files
+        # Frontend Sprite Components & CSS (NEW)
+        "frontend/src/components/sprites/PlayerSprite.jsx",    # Assuming you'll create this for consistency
+        "frontend/src/components/sprites/GoblinSprite.jsx",
+        "frontend/src/components/sprites/OrcSprite.jsx",       # Assuming you'll create this
+        "frontend/src/components/sprites/SkeletonSprite.jsx",  # Assuming you'll create this
+        "frontend/src/components/sprites/sprites.css",
+        # Backend Test files
         "backend/app/tests/test_combat.py",
         "backend/app/tests/test_player.py",
         "backend/app/tests/test_entity_manager.py",
         "backend/app/tests/test_map_manager.py",
-        "backend/app/tests/test_game_state.py",         # ADDED
-        "backend/app/tests/test_item_effects.py",      # ADDED
-        "backend/app/tests/test_dungeon_generator.py", # ADDED
-        "backend/app/tests/test_ai.py"                 # ADDED
+        "backend/app/tests/test_game_state.py",
+        "backend/app/tests/test_item_effects.py",
+        "backend/app/tests/test_dungeon_generator.py",
+        "backend/app/tests/test_ai.py",
+        # Frontend Test Files
+        "frontend/src/game_logic/messageHandlers/__tests__/combatHandler.test.js",
+        "frontend/src/game_logic/messageHandlers/__tests__/dungeonDataHandler.test.js",
+        "frontend/src/game_logic/messageHandlers/__tests__/errorHandler.test.js",
+        "frontend/src/game_logic/messageHandlers/__tests__/gameMessageHandler.test.js",
+        "frontend/src/game_logic/messageHandlers/__tests__/monsterHandler.test.js",
+        "frontend/src/game_logic/messageHandlers/__tests__/playerLeveledUpHandler.test.js",
+        "frontend/src/game_logic/messageHandlers/__tests__/playerMovementHandler.test.js",
+        "frontend/src/game_logic/messageHandlers/__tests__/playerStatsHandler.test.js",
+        "frontend/src/game_logic/messageHandlers/__tests__/tileChangeHandler.test.js",
+        "frontend/src/hooks/__tests__/useGameState.test.js",
+        "frontend/src/hooks/__tests__/useGameWebSocket.test.js",
+        "frontend/src/__tests__/DungeonCanvas.test.jsx" # Added this existing test file
     ),
     [Parameter(Mandatory=$false)]
-    [string[]]$FileExtensions = @("*.py", "*.js", "*.jsx") 
+    [string[]]$FileExtensions = @("*.py", "*.js", "*.jsx", "*.css") # Added *.css
 )
 
 # Get the directory where the script is located (should be your project root)
-$ProjectRoot = (Get-Location).Path
+$ScriptDirectory = Split-Path -Parent $MyInvocation.MyCommand.Path
+$ProjectRoot = $ScriptDirectory # Assuming script is in project root
+# If script is in a subfolder like '.scripts', adjust $ProjectRoot accordingly:
+# $ProjectRoot = Join-Path -Path $ScriptDirectory -ChildPath ".."
+# $ProjectRoot = Resolve-Path $ProjectRoot # Normalize path
+
 Write-Host "Project Root Detected: $ProjectRoot"
 
 # --- Static Context and Summary ---
@@ -68,37 +92,26 @@ JUST TAKE THE INFORMATION FOR THIS PROJECT IN, LET ME DEFINE THE NEXT STEPS, AND
 
 ## Current Project Status Summary (End of Session):
 
-The web-based Roguelike Dungeon Crawler game has undergone extensive backend refactoring for modularity and stability, alongside frontend adjustments for correct rendering. Key systems are functional and unit testing has begun.
+The web-based Roguelike Dungeon Crawler game has undergone extensive backend refactoring for modularity and stability. Frontend work includes moving towards CSS-based sprites for entities, overlaying them on a canvas-rendered map. Key systems are functional and unit testing is ongoing.
 
 **Key Implemented Features & Systems:**
 
--   **Core Gameplay Loop:** Player movement, combat (bump attacks, monster retaliation), item pickup (potions, scrolls), inventory management (use, equip, unequip), and game over states are functional.
+-   **Core Gameplay Loop:** Player movement, combat, item pickup, inventory management, and game over states are functional.
 -   **Backend (Python/FastAPI):**
-    -   WebSocket communication for real-time game updates.
-    -   Pydantic models for robust data validation and schema definition (`schemas.py`).
-    -   Centralized game parameter management (`core/config.py`).
-    -   `GameState` class (`core/game_state.py`) orchestrates game logic, delegating to specialized managers.
-    -   `Player` class (`core/player.py`) manages player state (stats, inventory, equipment, position, XP, leveling).
-    -   `MapManager` class (`core/map_manager.py`) handles map data, Fog of War (FoW), Line of Sight (LoS), and pathfinding. FoW includes persistent memory of explored areas.
-    -   `EntityManager` class (`core/entity_manager.py`) manages monster entities.
-    -   `Combat` module (`core/combat.py`) centralizes attack calculations and resolution of combat outcomes.
-    -   Procedural `DungeonGenerator` (`core/dungeon_generator.py`) uses its original, known-good algorithm for map creation, producing good layouts with doors. It places item and monster tiles, which GameState then processes.
-    -   Modular design for:
-        -   Tile definitions (`core/tiles.py`).
-        -   Monster definitions (`core/monsters/definitions.py` using `config.py`) and AI (`core/monsters/ai.py` using a strategy pattern and `config.py`). Includes Goblins, Orcs, Skeletons with LKP and ranged/chaser behaviors.
-        -   Item definitions (`core/items/definitions.py` using `config.py`) and effects (`core/items/effects.py` using a registry). Includes Health potions, teleport scrolls, dagger, armor.
+    -   WebSocket communication, Pydantic schemas, centralized config.
+    -   `GameState`, `Player`, `MapManager`, `EntityManager`, `Combat`, `DungeonGenerator` modules.
+    -   Modular tile, monster (with AI), and item (with effects) definitions.
 -   **Frontend (React/Vite/JavaScript):**
-    -   Canvas rendering for the dungeon, player, monsters (as distinct entities on top of map tiles), items, doors, and stairs.
-    -   Custom hooks: `useGameWebSocket`, `useGameState` managing client-side state.
-    -   Message handlers for various server updates, including `monster_appeared`.
+    -   Canvas rendering for the map background and tile-based items.
+    -   **CSS Sprites:** Entities (Player, Monsters) are rendered as HTML elements styled with CSS, positioned over the canvas. Work is in progress to refine these CSS-only sprites.
+    -   Custom hooks: `useGameWebSocket`, `useGameState`.
+    -   Message handlers for server updates.
     -   UI displays inventory, equipment, player stats.
--   **Player Progression:** XP, leveling with stat increases, full heal on level-up. Player stats, inventory, and equipment persist across dungeon levels.
--   **Dungeon Features:** Doors, Stairs (allowing descent to new levels).
--   **Bug Fixes & Refinements:** Resolved issues with monster visibility in FoW, player stat persistence, door integrity during monster movement, and numerous refactoring-related bugs.
--   **Unit Testing:** Initiated for backend core components (`combat.py`, `player.py`, `entity_manager.py`, `map_manager.py`) using `pytest`.
+-   **Player Progression & Dungeon Features:** XP, leveling, doors, stairs are functional.
+-   **Unit Testing:** Extensive backend (`pytest`) and frontend (`Vitest`) unit tests.
 
 **Current Tech Stack:**
--   Frontend: React (with Vite), JavaScript, custom hooks, HTML5 Canvas.
+-   Frontend: React (with Vite), JavaScript, CSS, Vitest, Testing Library.
 -   Backend: Python, FastAPI, WebSockets, Pydantic, Pytest.
 
 **Current Directory Structure (Relevant Parts):**
@@ -120,39 +133,51 @@ roguelike-game/
 │   │   │   │   └── effects.py
 │   │   │   ├── dungeon_generator.py
 │   │   │   └── game_state.py
-│   │   ├── tests/ # ADDED
+│   │   ├── tests/ 
 │   │   │   ├── test_combat.py
 │   │   │   ├── test_player.py
 │   │   │   ├── test_entity_manager.py
 │   │   │   ├── test_map_manager.py
-│   │   │   ├── test_game_state.py   # ADDED
-│   │   │   ├── test_item_effects.py # ADDED
-│   │   │   ├── test_dungeon_generator.py # ADDED
-│   │   │   └── test_ai.py # ADDED
+│   │   │   ├── test_game_state.py   
+│   │   │   ├── test_item_effects.py 
+│   │   │   ├── test_dungeon_generator.py 
+│   │   │   └── test_ai.py 
 │   │   ├── schemas.py
 │   │   └── main.py
-│   ├── pyproject.toml # ADDED for pytest config
+│   ├── pyproject.toml 
 │   └── ...
 ├── frontend/
 │   ├── src/
+│   │   ├── components/
+│   │   │   └── sprites/      # NEW directory for sprite components
+│   │   │       ├── PlayerSprite.jsx
+│   │   │       ├── GoblinSprite.jsx
+│   │   │       ├── OrcSprite.jsx
+│   │   │       ├── SkeletonSprite.jsx
+│   │   │       └── sprites.css # CSS for these components
 │   │   ├── hooks/
+│   │   │   ├── __tests__/
+│   │   │   │   ├── useGameWebSocket.test.js
+│   │   │   │   └── useGameState.test.js
 │   │   │   ├── useGameWebSocket.js
 │   │   │   └── useGameState.js
 │   │   ├── game_logic/
+│   │   │   ├── __tests__/
+│   │   │   │   ├── combatHandler.test.js
+│   │   │   │   ├── dungeonDataHandler.test.js
+│   │   │   │   ├── errorHandler.test.js
+│   │   │   │   ├── gameMessageHandler.test.js
+│   │   │   │   ├── monsterHandler.test.js
+│   │   │   │   ├── playerLeveledUpHandler.test.js
+│   │   │   │   ├── playerMovementHandler.test.js
+│   │   │   │   └── playerStatsHandler.test.js
 │   │   │   ├── initialState.js
 │   │   │   ├── mainGameStateReducer.js
 │   │   │   └── messageHandlers/ 
-│   │   │       ├── combatHandler.js
-│   │   │       ├── dungeonDataHandler.js
-│   │   │       ├── errorHandler.js
-│   │   │       ├── gameMessageHandler.js
-│   │   │       ├── monsterHandler.js
-│   │   │       ├── playerLeveledUpHandler.js
-│   │   │       ├── playerMovementHandler.js
-│   │   │       ├── playerStatsHandler.js
-│   │   │       ├── tileChangeHandler.js
 │   │   ├── utils/
 │   │   │   └── mapUtils.js
+│   │   ├── __tests__/          # For component tests like DungeonCanvas.test.jsx
+│   │   │   └── DungeonCanvas.test.jsx
 │   │   ├── App.jsx
 │   │   ├── DungeonCanvas.jsx
 │   │   └── main.jsx
@@ -160,7 +185,6 @@ roguelike-game/
 └── ...
 
 ## Potential Future Implementations/Refinements:
-
 (As listed previously - e.g., Advanced Monster AI, More Dungeon Features, Testing, New Features etc.)
 
 ## Latest Code Files:
@@ -178,12 +202,14 @@ function Process-PathItem {
     )
 
     $FullPath = ""
-    if (Test-Path (Join-Path -Path $BaseProjectRoot -ChildPath $PathItem)) {
-        $FullPath = Join-Path -Path $BaseProjectRoot -ChildPath $PathItem
-    } elseif (Test-Path $PathItem) { 
+    # Check if PathItem is relative to BaseProjectRoot first
+    $AttemptRelative = Join-Path -Path $BaseProjectRoot -ChildPath $PathItem
+    if (Test-Path $AttemptRelative) {
+        $FullPath = $AttemptRelative
+    } elseif (Test-Path $PathItem) { # Then check if it's an absolute path
         $FullPath = $PathItem
     } else {
-        Write-Warning "Path item not found: $PathItem (relative to $BaseProjectRoot or absolute)"
+        Write-Warning "Path item not found: $PathItem (tried relative to $BaseProjectRoot and absolute)"
         return "" 
     }
 
@@ -191,8 +217,13 @@ function Process-PathItem {
 
     if (Test-Path $FullPath -PathType Leaf) { 
         $File = Get-Item $FullPath
-        $RelativePath = $File.FullName.Substring($BaseProjectRoot.Length).TrimStart("\/")
-        $RelativePath = $RelativePath.Replace("\", "/") 
+        # Ensure BaseProjectRoot ends with a path separator for correct substring length, or normalize
+        $NormalizedBaseProjectRoot = $BaseProjectRoot
+        if (-not ($NormalizedBaseProjectRoot.EndsWith("\") -or $NormalizedBaseProjectRoot.EndsWith("/"))) {
+            $NormalizedBaseProjectRoot += Get-Location | Select-Object -ExpandProperty Provider | ForEach-Object {$_.PathSeparator}
+        }
+        # Ensure paths use forward slashes for consistency in the output
+        $RelativePath = $File.FullName.Substring($NormalizedBaseProjectRoot.Length).Replace("\", "/")
         
         $IncludeFile = $false
         foreach ($ExtPattern in $AllowedExtensions) {
@@ -204,68 +235,83 @@ function Process-PathItem {
 
         if ($IncludeFile) {
             $FileContent = Get-Content -Raw -Path $File.FullName -ErrorAction SilentlyContinue
-            # Check if Get-Content failed or returned empty, but distinguish from genuinely empty files
-             if (-not $? -or (-not $FileContent -and (Get-Item $File.FullName).Length -gt 0)) {
+            if (-not $?) { 
                  $OutputString += @"
 
---- ERROR READING FILE: $RelativePath ---
-Could not read content. Check permissions or if file is locked.
+--- ERROR READING FILE: /$RelativePath ---
+Could not read content. Get-Content failed. Check permissions or if file is locked/exists.
 --- END ERROR ---
 "@
-                Write-Warning "Error reading file: $($File.FullName)"
-            } else {
+                Write-Warning "Error reading file (Get-Content failed): $($File.FullName)"
+            } elseif (-not $FileContent -and (Get-Item $File.FullName).Length -gt 0) { 
+                 $OutputString += @"
+
+--- ERROR READING FILE: /$RelativePath ---
+File has size but Get-Content -Raw returned empty. Possible encoding issue or very large file.
+--- END ERROR ---
+"@
+                Write-Warning "Error: File $($File.FullName) has size but no content was retrieved."
+            } else { 
                 $OutputString += @"
 
---- BEGIN FILE: $RelativePath ---
+--- BEGIN FILE: /$RelativePath ---
 $FileContent
---- END FILE: $RelativePath ---
+--- END FILE: /$RelativePath ---
 "@
             }
         }
     } elseif (Test-Path $FullPath -PathType Container) { 
-        $RelativeDirPath = $FullPath.Substring($BaseProjectRoot.Length).TrimStart("\/")
-        $RelativeDirPath = $RelativeDirPath.Replace("\", "/")
+        $NormalizedBaseProjectRoot = $BaseProjectRoot
+        if (-not ($NormalizedBaseProjectRoot.EndsWith("\") -or $NormalizedBaseProjectRoot.EndsWith("/"))) {
+            $NormalizedBaseProjectRoot += Get-Location | Select-Object -ExpandProperty Provider | ForEach-Object {$_.PathSeparator}
+        }
+        $RelativeDirPath = $FullPath.Substring($NormalizedBaseProjectRoot.Length).Replace("\", "/")
         $OutputString += @"
 
---- ENTERING DIRECTORY: $RelativeDirPath ---
+--- ENTERING DIRECTORY: /$RelativeDirPath ---
 "@
-        # Recursively find files within the directory, applying filters
-        Get-ChildItem -Path $FullPath -Recurse -File | Where-Object {
-            $File = $_
-            $IncludeFile = $false
+        Get-ChildItem -Path $FullPath -File -Recurse | ForEach-Object { 
+            $SubFile = $_
+            $IncludeSubFile = $false
             foreach ($ExtPattern in $AllowedExtensions) {
-                if ($File.Name -like $ExtPattern) {
-                    $IncludeFile = $true
+                if ($SubFile.Name -like $ExtPattern) {
+                    $IncludeSubFile = $true
                     break
                 }
             }
-            return $IncludeFile
-        } | ForEach-Object {
-            $SubFile = $_
-            $SubRelativePath = $SubFile.FullName.Substring($BaseProjectRoot.Length).TrimStart("\/")
-            $SubRelativePath = $SubRelativePath.Replace("\", "/")
-            
-            $SubFileContent = Get-Content -Raw -Path $SubFile.FullName -ErrorAction SilentlyContinue
-            # Check if Get-Content failed or returned empty, but distinguish from genuinely empty files
-            if (-not $? -or (-not $SubFileContent -and (Get-Item $SubFile.FullName).Length -gt 0)) {
-                 $OutputString += @"
 
---- ERROR READING FILE: $SubRelativePath ---
-Could not read content. Check permissions or if file is locked.
+            if ($IncludeSubFile) {
+                $SubRelativePath = $SubFile.FullName.Substring($NormalizedBaseProjectRoot.Length).Replace("\", "/")
+                
+                $SubFileContent = Get-Content -Raw -Path $SubFile.FullName -ErrorAction SilentlyContinue
+                 if (-not $?) { 
+                    $OutputString += @"
+
+--- ERROR READING FILE: /$SubRelativePath ---
+Could not read content. Get-Content failed. Check permissions or if file is locked/exists.
 --- END ERROR ---
 "@
-                Write-Warning "Error reading file: $($SubFile.FullName)"
-            } else {
-                $OutputString += @"
+                    Write-Warning "Error reading file (Get-Content failed): $($SubFile.FullName)"
+                } elseif (-not $SubFileContent -and (Get-Item $SubFile.FullName).Length -gt 0) {
+                    $OutputString += @"
 
---- BEGIN FILE: $SubRelativePath ---
-$SubFileContent
---- END FILE: $SubRelativePath ---
+--- ERROR READING FILE: /$SubRelativePath ---
+File has size but Get-Content -Raw returned empty.
+--- END ERROR ---
 "@
+                    Write-Warning "Error: File $($SubFile.FullName) has size but no content was retrieved."
+                } else {
+                    $OutputString += @"
+
+--- BEGIN FILE: /$SubRelativePath ---
+$SubFileContent
+--- END FILE: /$SubRelativePath ---
+"@
+                }
             }
         }
         $OutputString += @"
---- LEAVING DIRECTORY: $RelativeDirPath ---
+--- LEAVING DIRECTORY: /$RelativeDirPath ---
 "@
     }
     return $OutputString
@@ -286,8 +332,6 @@ try {
   Write-Host "`n---`nContent has also been copied to your clipboard.`n---"
 } catch {
   Write-Warning "`n---`nAutomatic copy to clipboard failed. Please copy the output above manually.`n---"
-  # Optionally output the content again here if clipboard failed, but Write-Output already did it.
-  # Write-Host $ConsolidatedOutput # Avoids double output if primary Write-Output already happened.
 }
 
 Write-Host "`nInstructions: Copy the entire output above (starting from '# Project Context and Code Snapshot') and paste it into the new chat."

@@ -175,3 +175,109 @@ def test_reveal_room_updates_ever_revealed(map_manager_instance: MapManager, moc
     for y_test in range(3):
         for x_test in range(3):
             assert map_manager_instance.dungeon_map_for_client[y_test][x_test] == TILE_FLOOR
+
+# --- Tests for find_path_bfs ---
+def test_find_path_bfs_simple_path_exists(map_manager_instance: MapManager, entity_manager_instance: EntityManager):
+    map_data = [
+        [TILE_FLOOR, TILE_FLOOR, TILE_FLOOR]
+    ]
+    map_manager_instance.actual_dungeon_map = map_data
+    start_pos = {"x": 0, "y": 0}
+    end_pos = {"x": 2, "y": 0}
+    path = map_manager_instance.find_path_bfs(start_pos, end_pos, "monster", entity_manager_instance, None)
+    assert path is not None
+    assert len(path) == 3
+    assert path[0] == start_pos
+    assert path[1] == {"x": 1, "y": 0}
+    assert path[2] == end_pos
+
+def test_find_path_bfs_no_path_wall(map_manager_instance: MapManager, entity_manager_instance: EntityManager):
+    map_data = [
+        [TILE_FLOOR, TILE_WALL, TILE_FLOOR]
+    ]
+    map_manager_instance.actual_dungeon_map = map_data
+    start_pos = {"x": 0, "y": 0}
+    end_pos = {"x": 2, "y": 0}
+    path = map_manager_instance.find_path_bfs(start_pos, end_pos, "monster", entity_manager_instance, None)
+    assert path is None
+
+def test_find_path_bfs_path_around_obstacle(map_manager_instance: MapManager, entity_manager_instance: EntityManager):
+    map_data = [
+        [TILE_FLOOR, TILE_FLOOR, TILE_FLOOR],
+        [TILE_FLOOR, TILE_WALL,  TILE_FLOOR],
+        [TILE_FLOOR, TILE_FLOOR, TILE_FLOOR]
+    ]
+    map_manager_instance.actual_dungeon_map = map_data
+    start_pos = {"x": 0, "y": 1}
+    end_pos = {"x": 2, "y": 1}
+    path = map_manager_instance.find_path_bfs(start_pos, end_pos, "monster", entity_manager_instance, None)
+    assert path is not None
+    # Expected path could be (0,1)->(0,0)->(1,0)->(2,0)->(2,1) OR (0,1)->(0,2)->(1,2)->(2,2)->(2,1) - length 5
+    assert len(path) == 5 
+    assert path[0] == start_pos
+    assert path[-1] == end_pos
+    assert {"x":1, "y":1} not in path # Should not go through the wall
+
+def test_find_path_bfs_path_to_player_target(map_manager_instance: MapManager, entity_manager_instance: EntityManager):
+    map_data = [
+        [TILE_FLOOR, TILE_FLOOR, TILE_FLOOR]
+    ]
+    map_manager_instance.actual_dungeon_map = map_data
+    start_pos = {"x": 0, "y": 0} # Monster start
+    player_pos = {"x": 2, "y": 0}  # Player is the target
+    path = map_manager_instance.find_path_bfs(start_pos, player_pos, "monster", entity_manager_instance, player_pos)
+    assert path is not None
+    assert len(path) == 3
+    assert path[-1] == player_pos # Path ends on player's tile
+
+def test_find_path_bfs_start_not_walkable(map_manager_instance: MapManager, entity_manager_instance: EntityManager):
+    map_data = [
+        [TILE_WALL, TILE_FLOOR, TILE_FLOOR]
+    ]
+    map_manager_instance.actual_dungeon_map = map_data
+    start_pos = {"x": 0, "y": 0} # Start on a wall
+    end_pos = {"x": 2, "y": 0}
+    path = map_manager_instance.find_path_bfs(start_pos, end_pos, "monster", entity_manager_instance, None)
+    assert path is None # Should not find a path if start is invalid, or if start is wall, path list will contain only start.
+                       # The current BFS adds start_pos to visited, so if it's not walkable, it won't explore.
+
+def test_find_path_bfs_end_not_walkable(map_manager_instance: MapManager, entity_manager_instance: EntityManager):
+    map_data = [
+        [TILE_FLOOR, TILE_FLOOR, TILE_WALL]
+    ]
+    map_manager_instance.actual_dungeon_map = map_data
+    start_pos = {"x": 0, "y": 0}
+    end_pos = {"x": 2, "y": 0} # End on a wall
+    path = map_manager_instance.find_path_bfs(start_pos, end_pos, "monster", entity_manager_instance, None)
+    assert path is None
+
+def test_find_path_bfs_blocked_by_other_monster(map_manager_instance: MapManager, entity_manager_instance: EntityManager):
+    map_data = [
+        [TILE_FLOOR, TILE_FLOOR, TILE_FLOOR]
+    ]
+    map_manager_instance.actual_dungeon_map = map_data
+    start_pos = {"x": 0, "y": 0}
+    end_pos = {"x": 2, "y": 0}
+    
+    # Place a blocking monster in the middle
+    entity_manager_instance.add_monster({"id": "blocker", "x": 1, "y": 0, "type_name": "goblin"})
+    
+    path = map_manager_instance.find_path_bfs(start_pos, end_pos, "monster", entity_manager_instance, None)
+    assert path is None # Monster cannot path through another monster
+
+def test_find_path_bfs_player_can_target_monster_tile_for_attack(map_manager_instance: MapManager, entity_manager_instance: EntityManager):
+    # This tests if player pathfinding considers the monster's tile as a valid *endpoint*
+    # even if not strictly "walkable" in the sense of moving *onto* it during pathing.
+    # The current is_walkable_for_entity for "player" does not allow walking onto monster tiles.
+    # This test might be more relevant for a different utility or if pathfinding needs to stop *next* to a monster.
+    # For now, BFS should not find a path *onto* the monster tile for the player.
+    map_data = [
+        [TILE_FLOOR, TILE_FLOOR, TILE_FLOOR] # P M F
+    ]
+    map_manager_instance.actual_dungeon_map = map_data
+    player_start_pos = {"x": 0, "y": 0}
+    monster_pos = {"x": 1, "y": 0}
+    entity_manager_instance.add_monster({"id": "target_m", "x": monster_pos["x"], "y": monster_pos["y"], "type_name": "goblin"})
+
+    path = map_manager_instance.find_path_bfs(player_start_pos, monster_pos, "player", entity_manager_instance, player_start_pos)
+    assert path is None # Player pathfinding shouldn't path *onto* a monster.

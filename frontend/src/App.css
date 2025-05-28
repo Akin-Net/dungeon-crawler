@@ -40,3 +40,47 @@
 .read-the-docs {
   color: #888;
 }
+
+/* ... .dungeon-container styles (ensure it has position: relative) ... */
+.dungeon-container {
+  display: inline-block; 
+  position: relative !important; /* This is for .game-sprite elements */
+}
+
+/* This is the main wrapper for EACH sprite, positioned on the grid */
+.game-sprite {
+  position: absolute !important; 
+  width: var(--tile-size);
+  height: var(--tile-size);
+  box-sizing: border-box;
+  overflow: hidden; /* Can be useful, but comment out if debugging clipped parts */
+}
+
+/* These define the *type* of sprite, mostly for DungeonCanvas to render the correct internal component */
+/* And ensure transparent background for the main grid-positioned div */
+.sprite-player,
+.sprite-goblin,
+.sprite-orc,
+.sprite-skeleton {
+  background-color: transparent;
+  position: relative; /* Children components will be positioned relative to this */
+}
+
+.sprite-player {
+  z-index: 10; /* Player on top of other sprites if overlapping */
+}
+
+/* Fallback for unknown sprite types (can still be styled here) */
+.sprite-default {
+  background-color: magenta; /* Example fallback */
+  border: 1px dashed yellow;
+  display: flex; 
+  align-items: center;
+  justify-content: center;
+}
+.sprite-default::before { /* If you use ::before for default text */
+  content: '?';
+  color: white;
+  font-size: calc(var(--tile-size) * 0.7);
+  line-height: 1;
+}

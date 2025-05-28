@@ -49,12 +49,12 @@ def apply_teleport_random_effect(
 
     for y in range(map_h):
         for x in range(map_w):
-            # gs._is_walkable_for_entity uses map_manager and needs entity_manager, player_pos
             if gs._is_walkable_for_entity(x, y, "player_teleport"): 
                 if player_instance.pos["x"] == x and player_instance.pos["y"] == y:
                     continue
-                if gs.entity_manager.get_monster_at(x,y): # Use entity_manager
-                    continue
+                # gs._is_walkable_for_entity already checks for monsters for "player_teleport"
+                # if gs.entity_manager.get_monster_at(x,y): 
+                #     continue
                 possible_locations.append((x,y))
     
     if not possible_locations:
@@ -62,18 +62,34 @@ def apply_teleport_random_effect(
         return responses
 
     new_x, new_y = random.choice(possible_locations)
-    player_instance.pos = {"x": new_x, "y": new_y} # Update player's position directly
+    old_player_pos = player_instance.pos.copy() # Store old position for LKP logic for monsters
+    player_instance.pos = {"x": new_x, "y": new_y} 
 
     responses.append(schemas.GameMessageServerResponse(text=f"You read the {item_data.get('type_name', 'scroll')} and vanish, reappearing elsewhere!"))
     responses.append(schemas.PlayerMovedServerResponse(player_pos=schemas.Position(**player_instance.pos)))
 
+    # If player teleports into a new, unvisited room, reveal it
     room_info = gs.map_manager.get_room_at_pos(player_instance.pos["x"], player_instance.pos["y"])
     if room_info and room_info[0] not in gs.map_manager.visited_room_indices:
-        responses.extend(gs.map_manager.reveal_room_and_connected_corridors(room_info[0], gs))
+        # Note: reveal_room_and_connected_corridors itself doesn't directly return TileChange for client map
+        # It updates ever_revealed_tiles. update_fov uses this.
+        gs.map_manager.reveal_room_and_connected_corridors(room_info[0], gs) 
     
+    # Update FoV from the new position
     if gs.map_manager.dungeon_map_for_client: 
         fov_updates = gs.map_manager.update_fov(player_instance.pos)
         responses.extend(fov_updates)
+
+    # CRITICAL: After FoV is updated based on the new position, check for newly visible monsters
+    monster_appear_responses = gs._check_and_reveal_newly_visible_monsters()
+    responses.extend(monster_appear_responses)
+    
+    # Monsters take their turn AFTER teleport effect is fully resolved including FoV/reveals
+    # This is handled by GameState.handle_use_item calling gs.process_monster_turns()
+    # However, monster AI needs to know the player's PREVIOUS position for LKP if LoS is lost.
+    # This is implicitly handled by monster AI using player_current_pos when it has LoS,
+    # and only switching to LKP pursuit on its *next* turn if LoS is then False.
+    # For the purpose of this effect function, we don't directly trigger monster turns here.
 
     return responses
 

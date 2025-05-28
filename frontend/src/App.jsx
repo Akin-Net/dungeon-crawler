@@ -4,6 +4,7 @@ import DungeonCanvas from './DungeonCanvas';
 import { useGameWebSocket } from './hooks/useGameWebSocket';
 import { useGameState } from './hooks/useGameState';
 import './App.css';
+import './components/sprites/sprites.css';
 
 function App() {
   const { isConnected, messageBatch, sendMessage, error: wsError } = useGameWebSocket();
